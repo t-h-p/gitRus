@@ -16,18 +16,14 @@ type t =
     message : string;
   }
 and tree_entry = {
-  mode : int;
+  mode : string;
   name : string;
   (* Hash should be 20 byte representation, as opposed to hexidecimal *)
   hash : string;
 }
 
-val hash_hex : t -> (string, string) result
-
-val hash_bin : t -> (string, string) result
+val hash_hex : t -> string
 
 val blob_of_file : string -> t
 
-val filemode : string -> int
-
-val get_files : string -> string list
+val tree_of_directory : string -> t

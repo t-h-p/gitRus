@@ -1,1 +1,1 @@
-lib/git_object.mli:
+lib/git_object.pp.mli:
