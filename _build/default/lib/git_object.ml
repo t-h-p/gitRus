@@ -45,12 +45,12 @@ let obj_hash obj =
 let hash_hex obj =
   match obj_hash obj with
   | Ok digest -> Sha1.to_hex digest
-  | Error _ -> raise (Failure "hash_hex didn't work")
+  | Error _ -> failwith "hash_hex didn't work"
 
 let hash_bin obj =
   match obj_hash obj with
   | Ok digest -> Sha1.to_bin digest
-  | Error _ -> raise (Failure "obj_hash_bin didn't work")
+  | Error _ -> failwith "obj_hash_bin didn't work"
 
 let with_in_channel filename f =
   let ic = open_in filename in
@@ -90,7 +90,7 @@ let filemode filename =
   | (Unix.S_REG,0o644) -> 0o100644
   | (Unix.S_REG,0o755) -> 0o100755
   | (Unix.S_LNK,_) -> 0o120000
-  | _ -> raise (Failure "Wrong filemode")
+  | _ -> failwith "Wrong filemode"
 
 let get_files dirname =
   let handle = Unix.opendir dirname in
@@ -118,7 +118,7 @@ let rec tree_of_directory dirname =
     | (f, 0o100755) -> {mode = "100755"; name = f; hash = hash_bin (blob_of_file (Filename.concat dirname f))}
     | (d, 0o040000) -> {mode = "40000"; name = d; hash = hash_bin (tree_of_directory (Filename.concat dirname d))}
     | (l, 0o120000) -> {mode = "120000"; name = l; hash = hash_bin (blob_of_link (Filename.concat dirname l))}
-    | (_,_) -> raise (Failure "Wrong filemode")
+    | (_,_) -> failwith "Wrong filemode"
   in
   let items = List.sort git_compare_entries (List.map fn pairs) in
   Tree items

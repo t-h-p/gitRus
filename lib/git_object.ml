@@ -1,3 +1,5 @@
+open Core
+
 type t =
   | Blob of string
   | Tree of tree_entry list
@@ -23,9 +25,20 @@ and tree_entry = {
 }
 
 let git_compare_entries e1 e2 =
-  let name1 = if e1.mode = "40000" then e1.name ^ "/" else e1.name in
-  let name2 = if e2.mode = "40000" then e2.name ^ "/" else e2.name in
-  String.compare name1 name2
+  let name1 = if (String.equal e1.mode "40000") then e1.name ^ "/" else e1.name in
+  let name2 = if (String.equal e2.mode "40000") then e2.name ^ "/" else e2.name in
+  String.equal name1 name2
+(*
+let find_in_tree tree ~item =
+  let comp e = String.equal e.name item.name in
+  let has = List.exists tree ~f:comp in
+  if has then
+    match
+
+let rec add_to_tree tree ~item ~path =
+  match path with
+  | fst::_ ->
+*)
 
 let obj_hash obj =
   match obj with
@@ -34,8 +47,8 @@ let obj_hash obj =
     let raw = (Printf.sprintf "blob %d\000" len) ^ content in
     Ok (raw |> Sha1.string)
   | Tree items ->
-    let f   (acc:string) (tree_item: tree_entry) = acc ^ tree_item.mode ^ " " ^ tree_item.name ^ "\000" ^ tree_item.hash in
-    let content = List.fold_left f "" items in
+    let name_concat (acc:string) (tree_item: tree_entry) = acc ^ tree_item.mode ^ " " ^ tree_item.name ^ "\000" ^ tree_item.hash in
+    let content = List.fold items ~init:"" ~f:name_concat in
     let len = String.length content in
     let raw = (Printf.sprintf "tree %d\000" len) ^ content in
     Ok (raw |> Sha1.string)
@@ -50,26 +63,25 @@ let hash_hex obj =
 let hash_bin obj =
   match obj_hash obj with
   | Ok digest -> Sha1.to_bin digest
-  | Error _ -> failwith "obj_hash_bin didn't work"
+  | Error _ -> failwith "hash_bin didn't work"
 
 let with_in_channel filename f =
-  let ic = open_in filename in
+  let ic = In_channel.create filename in
   try
     let result = f ic in
-    close_in ic;
+    In_channel.close ic;
     result
   with e ->
-    close_in_noerr ic;
+    In_channel.close ic;
     raise e
 
+let blob_of_link linkname =
+  Blob (Unix.readlink linkname)
 let blob_of_file filename =
   Blob (with_in_channel filename (fun ic ->
     let len  = in_channel_length ic in
     really_input_string ic len
   ))
-
-let blob_of_link linkname =
-  Blob (Unix.readlink linkname)
 
 (*
 Directory (040000) -- (Unix.S_DIR, 0o755)
@@ -79,7 +91,7 @@ Symlink (120000) -- (Unix.S_LNK, 0o777)
 *)
 
 let kind_and_perms filename =
-  let stats = Unix.stat filename in
+  let stats = Core_unix.stat filename in
   (stats.Unix.st_kind, stats.Unix.st_perm)
 
 

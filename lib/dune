@@ -1,5 +1,5 @@
 (library
  (name gitRus)
- (libraries sha unix bitstring)
+ (libraries sha unix bitstring core)
  (preprocess (pps ppx_bitstring))
 )
