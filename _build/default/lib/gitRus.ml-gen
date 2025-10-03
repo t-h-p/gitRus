@@ -5,3 +5,6 @@ module Git_object = GitRus__Git_object
 
 (** @canonical GitRus.Index *)
 module Index = GitRus__Index
+
+(** @canonical GitRus.Util *)
+module Util = GitRus__Util

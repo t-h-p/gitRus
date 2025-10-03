@@ -25,5 +25,3 @@ and tree_entry = {
 val hash_hex : t -> string
 
 val blob_of_file : string -> t
-
-val tree_of_directory : string -> t

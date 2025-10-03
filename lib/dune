@@ -1,5 +1,5 @@
 (library
  (name gitRus)
- (libraries sha unix bitstring core)
- (preprocess (pps ppx_bitstring))
-)
+ (libraries sha bitstring core core_unix stdint)
+ (preprocess (pps ppx_bitstring ppx_jane ppx_inline_test ppx_assert))
+ (inline_tests))
