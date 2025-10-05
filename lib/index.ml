@@ -10,7 +10,6 @@ open Util
 
 let index_bits = bitstring_of_file (from_root "/.git/index")
 
-
 type entry = {
   ctime_sec: int32;
   ctime_nsec: int32;
@@ -25,38 +24,16 @@ type entry = {
   sha1 : string;  (* 20-byte SHA1 hash *)
   flags: int16;
   file_path : string;
+  padding : string; (* Padding for 8-byte align *)
 }
 
-let update ~entry =
-  let mask = Int16.of_int (4095) in
-  let len_int16 = Int16.logand entry.flags mask in
-  let len = Int16.to_int len_int16 in
-  let flags_int31 = Int16.to_int entry.flags in
-  let%bitstring bits = {|
-    entry.ctime_sec : 32;
-    entry.ctime_nsec: 32;
-    entry.mtime_sec: 32;
-    entry.mtime_nsec: 32;
-    entry.dev: 32;
-    entry.ino: 32;
-    entry.mode: 32;
-    entry.uid: 32;
-    entry.gid: 32;
-    entry.size: 32;
-    entry.sha1: 20*8 : string;
-    flags_int31: 16;
-    entry.file_path: len*8 : string
-|} in Ok(bits)
-
+(** THIS ALL MAY BE USEFUL LATER
 let name_with_pathlist path =
     let items = List.rev (String.split path ~on:'/') in
     match items with
     | fst::rest -> (fst, List.rev rest)
     | [] -> failwith "Empty list"
 
-
-(*
-(* Only Version 2 index entries for the time being *)
 let rec parse_entries_v2 entries l =
   match%bitstring entries with
   | {| _ : 32*6 : bitstring ;
@@ -83,7 +60,6 @@ let rec parse_entries_v2 entries l =
       if bitstring_length rest = 0 then l else parse_entries_v2 rest (l @ [new_item])
   | {|_|} -> failwith "Couldn't parse entry"
 
-(* Needs version sensitive checking for 2, 3, and 4. Git now uses Version 4, and it is important that this works on an existing .git/index. *)
 let to_items bits =
   match%bitstring bits with
   | {| _ : 4*8 : string ;
@@ -94,3 +70,25 @@ let to_items bits =
         | Some num -> parse_entries_v2 entries num [] 0
         | None -> failwith "Unable to cast int32 to int"
 *)
+let update ~entry =
+  let mask = Int16.of_int (4095) in
+  let len_int16 = Int16.logand entry.flags mask in
+  let len = Int16.to_int len_int16 in
+  let flags_int31 = Int16.to_int entry.flags in
+  let%bitstring bits = {|
+    entry.ctime_sec : 32 : bigendian;
+    entry.ctime_nsec: 32 : bigendian;
+    entry.mtime_sec: 32 : bigendian;
+    entry.mtime_nsec: 32 : bigendian;
+    entry.dev: 32 : bigendian;
+    entry.ino: 32 : bigendian;
+    entry.mode: 32 : bigendian;
+    entry.uid: 32 : bigendian;
+    entry.gid: 32 : bigendian;
+    entry.size: 32 : bigendian;
+    entry.sha1: 20*8 : string;
+    flags_int31: 16 : bigendian;
+    entry.file_path: len*8 : string
+|} in
+ let out = concat [index_bits;bits] in
+ bitstring_to_file out (Sys_unix.getcwd () ^ "/.git/index")

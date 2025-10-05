@@ -1,1 +1,1 @@
-let () = Command_unix.run ~version:"0.0.0" ~build_info:"MADEBYTOM" GitRus.Cmd.command
+let () = Command_unix.run ~version:"0.1.0" ~build_info:"MADEBYTOM" GitRus.Cmd.command
