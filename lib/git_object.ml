@@ -93,6 +93,7 @@ let blob_of_file path =
   | S_LNK -> Blob (Core_unix.readlink path)
   | _ -> failwith "Cannot make blob of that filetype"
 
+
 let te_of_blob blob ~mode ~name = { mode = mode ; name = name ; hash = hash_bin blob }
 
 (**

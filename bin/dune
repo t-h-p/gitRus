@@ -1,4 +1,4 @@
 (executable
  (public_name gitRus)
  (name main)
- (libraries gitRus))
+ (libraries gitRus core_unix.command_unix))

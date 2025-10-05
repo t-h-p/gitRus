@@ -1,14 +1,19 @@
 open Core
-open Bitstring
+
 open! Git_object
-open! Stdint
+
+(** For bit manipulation *)
+open Bitstring
+open Stdint
+
 open Util
+
 let index_bits = bitstring_of_file (from_root "/.git/index")
 
-(*
-type index_entry = {
-  ctime_s: int32;
-  ctime_ns: int32;
+
+type entry = {
+  ctime_sec: int32;
+  ctime_nsec: int32;
   mtime_sec : int32;
   mtime_nsec : int32;
   dev : int32;
@@ -18,16 +23,37 @@ type index_entry = {
   gid : int32;
   size : int32;
   sha1 : string;  (* 20-byte SHA1 hash *)
-  flags:
+  flags: int16;
   file_path : string;
 }
-*)
+
+let update ~entry =
+  let mask = Int16.of_int (4095) in
+  let len_int16 = Int16.logand entry.flags mask in
+  let len = Int16.to_int len_int16 in
+  let flags_int31 = Int16.to_int entry.flags in
+  let%bitstring bits = {|
+    entry.ctime_sec : 32;
+    entry.ctime_nsec: 32;
+    entry.mtime_sec: 32;
+    entry.mtime_nsec: 32;
+    entry.dev: 32;
+    entry.ino: 32;
+    entry.mode: 32;
+    entry.uid: 32;
+    entry.gid: 32;
+    entry.size: 32;
+    entry.sha1: 20*8 : string;
+    flags_int31: 16;
+    entry.file_path: len*8 : string
+|} in Ok(bits)
 
 let name_with_pathlist path =
     let items = List.rev (String.split path ~on:'/') in
     match items with
     | fst::rest -> (fst, List.rev rest)
     | [] -> failwith "Empty list"
+
 
 (*
 (* Only Version 2 index entries for the time being *)
