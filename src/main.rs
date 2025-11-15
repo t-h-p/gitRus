@@ -5,5 +5,5 @@ pub mod git_object;
 pub mod index;
 
 fn main() {
-    println!("Hello, world!");
+    parse_index();
 }
