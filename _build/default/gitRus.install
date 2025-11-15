@@ -1,8 +1,0 @@
-lib: [
-  "_build/install/default/lib/gitRus/META"
-  "_build/install/default/lib/gitRus/dune-package"
-  "_build/install/default/lib/gitRus/opam"
-]
-bin: [
-  "_build/install/default/bin/gitRus"
-]
