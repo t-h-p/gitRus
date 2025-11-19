@@ -1,4 +1,5 @@
 // Git index (staging area) using Version 2 format
+// Needs better error handling
 
 use std::convert::TryInto;
 use std::fs::{self, read};
@@ -52,15 +53,26 @@ pub fn parse_index() {
         Some(amt) => u32::from_be_bytes(amt.try_into().unwrap()),
         None => panic!("no entry amount"),
     };
-    let e1 = get_entry(index.get(12..).unwrap());
-    print!("{:?}",String::from_utf8(e1.0.file_path).unwrap());
+    let mut entries: Vec<Entry> = Vec::new();
+    let mut remainder: &[u8] = match index.get(12..) {
+      Some(r) => r,
+      None => panic!("incomplete index")
+    };
+    for _ in 1..=entry_amt {
+      let entry = get_entry(remainder);
+      entries.push(entry.0);
+      remainder = entry.1;
+    }
+    for e in entries {
+      println!("{:?}",String::from_utf8(e.file_path));
+    }
 }
 
 fn read_u32(bytes: &[u8], offset: usize) -> [u8; 4] {
     bytes[offset..offset+4].try_into().unwrap()
 }
 
-fn get_entry(bytes: &[u8]) -> (Entry, Vec<u8>) {
+fn get_entry<'a>(bytes: &'a [u8]) -> (Entry, &'a [u8]) {
     let mut entry: Entry = match bytes.get(0..62) {
         Some(contents) => Entry {
             ctime_sec: read_u32(contents,0),
@@ -80,17 +92,18 @@ fn get_entry(bytes: &[u8]) -> (Entry, Vec<u8>) {
         },
         None => panic!("problem with an index entry"),
     };
-    // name length encoded in lower 12 bits of flags
     let name_len = (u16::from_be_bytes(entry.flags) & 0x0fff) as usize;
     let name_end = 62 + name_len;
     entry.file_path.extend_from_slice(&bytes[62..name_end]);
-    // calculate padding to 8-byte alignment
-    let padding_len = (8 - (name_end % 8)) % 8;
+    let padding_len = match (8 - (name_end % 8)) % 8 {
+      0 => 8,
+      x => x,
+    }; 
     entry
         .padding
         .extend_from_slice(&bytes[name_end..name_end + padding_len]);
     let next = name_end + padding_len;
-    return (entry, bytes[next..].to_vec());
+    return (entry, &bytes[next..]);
 }
 
 #[cfg(test)]
