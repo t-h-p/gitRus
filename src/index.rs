@@ -1,13 +1,13 @@
 // Git index (staging area) using Version 2 format
 // Needs better error handling
 
+use core::panic;
 use std::convert::TryInto;
 use std::fs::{self, read};
 
-struct Index {
+pub struct Index {
     // Signature always { 'D', 'I', 'R', 'C' } (4-bytes)
     // For now, version always 2 (4-bytes)
-    num_entries: [u8; 4],
     entries: Vec<Entry>,
     // No extensions currently
     checksum: [u8; 20],
@@ -31,7 +31,8 @@ struct Entry {
     padding: Vec<u8>, // Pad for byte align
 }
 
-pub fn parse_index() {
+pub fn parse_index() -> Index {
+    // Add checksum verification
     let index = fs::read("./.git/index").unwrap();
     match index.get(0..4) {
         Some(sig) => {
@@ -63,9 +64,14 @@ pub fn parse_index() {
       entries.push(entry.0);
       remainder = entry.1;
     }
-    for e in entries {
-      println!("{:?}",String::from_utf8(e.file_path));
-    }
+
+    let checksum = match remainder.get(remainder.len() - 20..) {
+      Some(c) => c,
+      None => panic!("no idea what just happened")  
+    };
+
+    return Index{entries: entries, checksum: checksum.try_into().unwrap()};
+
 }
 
 fn read_u32(bytes: &[u8], offset: usize) -> [u8; 4] {
